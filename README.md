@@ -1,2 +1,3 @@
-# ansible-role-common
-frequently used server tools
+# Ansible Collection - alanlaird.common
+
+Documentation for the collection.
