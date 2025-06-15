@@ -1,0 +1,57 @@
+---
+# setup firewalld
+# https://docs.ansible.com/ansible/latest/collections/ansible/posix/firewalld_module.html
+
+# set fw_service to ssh, web, etc
+
+- name: debug fw_service
+  ansible.builtin.debug: 
+    msg: "DEBUG FW_SERVICE {{ fw_service }}"
+
+- name: Install firewalld
+  ansible.builtin.package:
+    name: firewalld
+    state: present
+
+- name: Start and enable firewalld
+  ansible.builtin.systemd:
+    name: firewalld
+    state: started
+    enabled: yes
+
+- ansible.posix.firewalld:
+    zone: public
+    interface: eth0
+    permanent: true
+    state: enabled
+
+- name: Allow incoming SSH traffic
+  ansible.posix.firewalld:
+    service: ssh
+    zone: public
+    state: enabled
+    immediate: yes
+    permanent: yes
+  when: "'ssh' in fw_service"
+
+- name: Allow incoming HTTP and HTTPS traffic
+  ansible.posix.firewalld:
+    service: "{{ item }}"
+    zone: public
+    state: enabled
+    immediate: yes
+    permanent: yes
+  loop:
+    - http
+    - https
+  when: "'web' in fw_service"
+
+- name: Allow Authelia traffic port 9091
+  ansible.posix.firewalld:
+    port: 9091/tcp
+    zone: public
+    state: enabled
+    immediate: yes
+    permanent: yes
+  when: "'authelia' in fw_service"
+   

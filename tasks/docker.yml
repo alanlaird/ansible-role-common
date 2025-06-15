@@ -1,0 +1,8 @@
+---
+- name: Install Docker
+    ansible.builtin.include_role:
+      role: docker
+
+# add docker caching, etc if needed
+
+# docker role may need to be specific about OS release

@@ -1,0 +1,31 @@
+---
+- name: DDNS tasks
+  block:
+    - name: Setup DuckDNS
+      ansible.builtin.command:
+        cmd: curl "https://www.duckdns.org/update?domains={{ ddns_host }}&token={{ ddns_token }}&ip={{ ansible_facts.default_ipv4.address }}"
+      when: "'duckdns' in ddns_host"
+      register: duckdns
+    - name: Debuggery 2
+      debug:
+        var: duckdns.stdout
+    - name: Set hostname to "{{ ddns_host }}"
+      ansible.builtin.command:
+        #cmd: hostname "{{ ddns_host }}"
+        cmd: hostnamectl set-hostname "{{ ddns_host }}"
+  when: ddns_host is defined
+
+- name: Set basic hostname
+  ansible.builtin.command:
+    cmd: hostnamectl set-hostname "{{ instance_name }}"
+  when: ddns_host is not defined
+
+# https://serverfault.com/questions/832799/ansible-add-ips-from-inventory-to-etc-hosts-of-all-nodes
+- name: Add Ansible inventory mappings to /etc/hosts
+  become: true
+  blockinfile:
+    path: /etc/hosts
+    block: |
+      {% for host in groups['etchosts'] %}
+      {{ host }}
+      {% endfor %}

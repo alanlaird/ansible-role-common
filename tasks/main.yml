@@ -1,3 +1,28 @@
-#SPDX-License-Identifier: MIT-0
 ---
-# tasks file for common
+#- name: Disable IPV6
+#  ansible.builtin.include_role:
+#    role: common
+#    tasks_from: no_ipv6
+- name: Perform pre tasks
+  ansible.builtin.include_role:
+    role: common
+    tasks_from: pre
+- name: Setup DNS and hostname
+  include_role:
+    name: common
+    tasks_from: ddns
+- name: Setup firewalld
+  ansible.builtin.include_role:
+    role: common
+    tasks_from: firewalld
+#- name: DING DONG
+#  ansible.builtin.debug:
+#    var: web_base_img
+- name: Setup basic nginx
+  ansible.builtin.include_role:
+    role: web
+  when: web_base_img
+- name: Secure SSHD
+  ansible.builtin.include_role:
+    role: common
+    tasks_from: sshd

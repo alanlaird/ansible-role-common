@@ -1,0 +1,23 @@
+---
+- name: Update apt cache
+  apt:
+    update_cache: yes
+- name: Install GPG
+  apt:
+    name: gpg
+    state: present
+- name: Set homedir fact
+  ansible.builtin.set_fact:
+    homedir: "{{ lookup('env', 'HOME') }}"
+- name: Add macbook laird key to authorized_keys
+  ansible.posix.authorized_key:
+    user: root
+    state: present
+    key: "{{ lookup ('file', '{{ homedir }}/.ssh/id_rsa.pub') }}"
+- name: Add ducky key
+  ansible.posix.authorized_key:
+    user: root
+    state: present
+    key: "{{ lookup ('file', '{{ homedir }}/Sync/.ssh/ducky.pub') }}"
+  when: ddns_hosts is defined
+

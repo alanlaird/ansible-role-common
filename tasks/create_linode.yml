@@ -1,0 +1,54 @@
+---
+- name: Populate ssh_pub_key
+  ansible.builtin.include_role:
+    role: common
+    tasks_from: get_ssh_key
+
+- name: Create a Linode instance
+  linode.cloud.instance:
+    api_token: "{{ api_token }}"
+    label: "{{ linlabel }}"
+    type: "{{ type | default('g6-nanode-1') }}"
+    region: "{{ linregion }}"
+    image: "{{ image | default('linode/debian12') }}"
+    root_pass: "{{ password }}"
+    state: present
+    authorized_keys: "{{ ssh_pub_key }}"
+#    additional_disks:
+#      - {Label: 'data', Size: 2500}
+#      - { "{{ lindisk | default(omit) }}" }
+#    disks:
+#      - label: boot
+#        image: linode/debian12
+#        size: 3000
+#      - label: data
+#        size: 2500
+  register: my_linode
+
+- name: Add new linode to host group
+  ansible.builtin.add_host:
+    hostname: "{{ my_linode.instance.ipv4[0] }}"
+    group: "{{ linlabel }}"
+    ansible_user: root
+
+- name: Add host to nodes
+  ansible.builtin.add_host:
+    group: nodes
+    #hostname: "{{ my_linode.instance.label }}"
+    hostname: "{{ my_linode.instance.ipv4[0] }}"
+    instance_name: "{{ item }}"
+    ansible_user: root
+
+- name: Add IP to nodes
+  ansible.builtin.add_host:
+    group: etchosts
+    #hostname: "{{ my_linode.instance.label }}"
+    hostname: "{{ my_linode.instance.ipv4[0] }} {{ item }}"
+    ansible_user: root
+  
+- name: Wait for SSH to come up
+  ansible.builtin.wait_for:
+    host: "{{ my_linode.instance.ipv4[0] }}"
+    port: 22
+    search_regex: OpenSSH
+    timeout: 320

@@ -1,0 +1,31 @@
+---
+- name: pull var_file
+  uri:
+    url: https://dl.k8s.io/release/stable.txt
+    method: GET
+    return_content: yes
+  register: k8stable
+- debug:
+    var: k8stable.content
+- name: chop down var
+  set_fact:
+    k8ver: "{{ k8stable.content.split('.')[:2]|join('.') }}"
+- debug:
+    var: k8ver
+- name: add k8s apt gpg key
+  apt_key:
+    url: "https://pkgs.k8s.io/core:/stable:/{{ k8ver }}/deb/Release.key"
+    state: present
+- name: add kubernetes apt repository
+  apt_repository:
+    #repo: deb https://apt.kubernetes.io/ kubernetes-bookworm main
+    repo: "deb https://pkgs.k8s.io/core:/stable:/{{ k8ver }}/deb/ /"
+    state: present
+    filename: 'kubernetes'
+- name: Install needed bits
+  package:
+    name:
+      - kubectl
+    state: present
+
+

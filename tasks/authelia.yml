@@ -1,0 +1,51 @@
+---
+- name: Create authelia dir
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: media
+    group: media
+    mode: '0755'
+  with_list:
+    - /data
+    - /data/authelia
+    - /data/authelia/config
+    - /data/authelia/secrets
+
+- name: Install Podman
+  include_role:
+    name: media
+    tasks_from: podman
+
+# https://www.linuxserver.io/blog/2020-08-26-setting-up-authelia
+# https://www.authelia.com/
+# https://www.authelia.com/integration/deployment/docker/
+- name: Run container
+  containers.podman.podman_container:
+    name: authelia
+    image: ghcr.io/authelia/authelia:latest
+    generate_systemd:
+      path: /etc/systemd/system
+      restart_policy: always
+      stop_timeout: 120
+      names: true
+      container_prefix: docker
+    env:
+      PUID: "1098"
+      PGID: "1098"
+      TZ: "America/Phoenix"
+      AUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET_FILE: '/secrets/JWT_SECRET'
+      AUTHELIA_SESSION_SECRET_FILE: '/secrets/SESSION_SECRET'
+      AUTHELIA_STORAGE_POSTGRES_PASSWORD_FILE: '/secrets/STORAGE_PASSWORD'
+      AUTHELIA_STORAGE_ENCRYPTION_KEY_FILE: '/secrets/STORAGE_ENCRYPTION_KEY'
+    volumes:
+      - /data/authelia/config:/config
+      - /data/authelia/secrets:/secrets
+    network: host
+
+- name: Enable authelia systemd
+  ansible.builtin.systemd_service:
+    name: docker-authelia
+    state: started
+    enabled: true
+

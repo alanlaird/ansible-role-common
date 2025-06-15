@@ -1,0 +1,52 @@
+---
+- name: GET READY TO RUMBLE
+  ansible.builtin.include_role:
+    role: common
+    tasks_from: get_ssh_key
+
+- name: Create a Proxmox instance
+  community.general.proxmox:
+    vmid: 100
+    node: twomile.laird.net
+    api_user: root@pam
+    api_password: 42sandman
+    api_host: twomile.laird.net
+    password: 42sandman
+
+
+
+
+
+
+
+    api_token: "{{ api_token }}"
+    label: "{{ linlabel }}"
+    type: g6-nanode-1
+    region: "{{ linregion }}"
+    image: linode/debian12
+    root_pass: "{{ password }}"
+    state: present
+    authorized_keys: "{{ ssh_pub_key }}"
+#    additional_disks:
+#      - {Label: 'data', Size: 2500}
+#      - { "{{ lindisk | default(omit) }}" }
+#    disks:
+#      - label: boot
+#        image: linode/debian12
+#        size: 3000
+#      - label: data
+#        size: 2500
+  register: my_linode
+
+- name: Add new linode to host group
+  ansible.builtin.add_host:
+    hostname: "{{ my_linode.instance.ipv4[0] }}"
+    group: "{{ linlabel }}"
+    ansible_user: root
+
+- name: Wait for SSH to come up
+  ansible.builtin.wait_for:
+    host: "{{ my_linode.instance.ipv4[0] }}"
+    port: 22
+    search_regex: OpenSSH
+    timeout: 320
